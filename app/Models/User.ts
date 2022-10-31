@@ -1,16 +1,31 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, HasMany, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import { v4 as uuidv4 } from 'uuid'
+
+import {
+  BaseModel,
+  beforeCreate,
+  beforeSave,
+  column,
+  HasMany,
+  hasMany,
+  ManyToMany,
+  manyToMany,
+} from '@ioc:Adonis/Lucid/Orm'
+import Hash from '@ioc:Adonis/Core/Hash'
+
+// import { compose } from '@ioc:Adonis/Core/Helpers'
+// import { Filterable } from '@iocAdonis/Addons/LucidFilter'
 
 import Address from './Address'
 import Purchase from './Purchase'
+import Role from './Role'
 
 export default class User extends BaseModel {
   @column({ isPrimary: true })
   public id: number
 
   @column()
-  public secureId: typeof uuidv4
+  public secureId: string
 
   @column()
   public name: string
@@ -35,4 +50,21 @@ export default class User extends BaseModel {
 
   @hasMany(() => Purchase)
   public purchases: HasMany<typeof Purchase>
+
+  @manyToMany(() => Role, {
+    pivotTable: 'user_roles',
+  })
+  public roles: ManyToMany<typeof Role>
+
+  @beforeCreate()
+  public static aassignUuid(user: User) {
+    user.secureId = uuidv4()
+  }
+
+  @beforeSave()
+  public static async hashPassword(user: User) {
+    if (user.$dirty.password) {
+      user.password = await Hash.make(user.password)
+    }
+  }
 }
