@@ -13,7 +13,7 @@ export default class extends BaseSeeder {
       email: 'admin@email.com',
       password: 'secret',
     })
-    const roleAdmin = await User.findBy('name', 'admin')
+    const roleAdmin = await Role.findBy('name', 'admin')
     if (roleAdmin) await userAdmin.related('roles').attach([roleAdmin.id])
 
     // --------------------- USER CLIENT -------------------------------
