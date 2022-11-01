@@ -42,4 +42,4 @@ Route.group(() => {
   Route.get('/test', ({ response }) => response.ok({ message: 'Você está autenticado' }))
 })
   .prefix('api')
-  .middleware('auth')
+  .middleware(['auth', 'is:admin'])
