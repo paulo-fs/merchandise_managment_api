@@ -8,8 +8,26 @@ import StoreValidator from 'App/Validators/User/StoreValidator'
 import UpdateValidator from 'App/Validators/User/UpdateValidator'
 
 export default class UsersController {
-  public async index({ response }: HttpContextContract) {
-    response.status(200).json({ message: 'Success' })
+  public async index({ response, request }: HttpContextContract) {
+    const { page, perPage, noPaginate, ...inputs } = request.qs()
+
+    if (noPaginate) {
+      return await User.query()
+        .preload('addresses')
+        .preload('roles', (roleTable) => roleTable.select('id', 'name'))
+        .filter(inputs)
+    }
+
+    try {
+      const users = await User.query()
+        .preload('addresses')
+        .preload('roles', (roleTable) => roleTable.select('id', 'name'))
+        .filter(inputs)
+        .paginate(page || 1, perPage || 10)
+      return response.ok(users)
+    } catch (error) {
+      return response.badRequest({ message: 'Error in list users', OriginalError: error.message })
+    }
   }
 
   public async store({ response, request }: HttpContextContract) {
@@ -66,8 +84,17 @@ export default class UsersController {
     return response.ok({ userFind })
   }
 
-  public async show({ response }: HttpContextContract) {
-    response.ok({ message: 'Mostra um usuário' })
+  public async show({ response, params }: HttpContextContract) {
+    const userSecureId = params.id
+    try {
+      const user = await User.query()
+        .where('secure_id', userSecureId)
+        .preload('addresses')
+        .preload('roles')
+      return response.ok(user)
+    } catch (error) {
+      return response.notFound({ message: 'User not found', originalError: error.message })
+    }
   }
 
   public async update({ response, request, params }: HttpContextContract) {
@@ -129,7 +156,13 @@ export default class UsersController {
     return response.ok({ userFind })
   }
 
-  public async destroy({ response }: HttpContextContract) {
-    response.ok({ message: 'Apaga um usuário' })
+  public async destroy({ response, params }: HttpContextContract) {
+    const userSecureId = params.id
+    try {
+      await User.query().where('secure_id', userSecureId).delete()
+      return response.ok({ message: 'User deleted successfully' })
+    } catch (error) {
+      return response.notFound({ message: 'User not found', originalError: error.message })
+    }
   }
 }
