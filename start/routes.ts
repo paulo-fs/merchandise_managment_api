@@ -36,16 +36,28 @@ Route.group(() => {
   Route.post('users/', 'UsersController.store')
 }).prefix('api')
 
-// AUTHENTICATED ROUTES
+// CLIENT ROUTES
 Route.group(() => {
   Route.resource('users/', 'UsersController').except(['store', 'index', 'destroy'])
+  Route.resource('products/', 'ProductsController').except(['store', 'destroy', 'update'])
+  Route.resource('cart/', 'CartController').apiOnly()
+  Route.resource('purchases/', 'PurchasesController').only(['store', 'index', 'show'])
 })
   .prefix('api')
   .middleware(['auth', 'is:client'])
 
+// EMPLOYEE ROUTES
+Route.group(() => {
+  Route.resource('products/', 'ProductsController').only(['store', 'destroy', 'update'])
+  Route.resource('categories/', 'CategoriesController').apiOnly()
+})
+  .prefix('api')
+  .middleware(['auth', 'is:employee'])
+
 // ADMIN ROUTES
 Route.group(() => {
   Route.resource('users/', 'UsersController').only(['index', 'destroy'])
+  Route.post('users/access_allow', 'UsersController.AccessAllow')
 })
   .prefix('api')
   .middleware(['auth', 'is:admin'])
