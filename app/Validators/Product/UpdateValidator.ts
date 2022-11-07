@@ -20,6 +20,8 @@ export default class UpdateValidator extends CustomMessages {
       rules.unique({ table: 'products', column: 'code' }),
     ]),
 
+    price: schema.number.optional([rules.unsigned()]),
+
     categories: schema.array
       .optional([rules.minLength(1)])
       .members(

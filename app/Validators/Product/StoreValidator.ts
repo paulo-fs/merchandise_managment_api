@@ -20,6 +20,8 @@ export default class StoreValidator extends CustomMessages {
       rules.unique({ table: 'products', column: 'code' }),
     ]),
 
+    price: schema.number([rules.unsigned()]),
+
     categories: schema
       .array([rules.minLength(1)])
       .members(
