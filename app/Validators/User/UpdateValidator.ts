@@ -41,6 +41,7 @@ export default class UpdateValidator extends CustomMessages {
         },
       }),
     ]),
+    urlProfilePic: schema.file.optional({ size: '2mb', extnames: ['jpg', 'png', 'jpeg'] }, []),
     password: schema.string.optional({}, [rules.maxLength(50)]),
     addressId: schema.number.optional([
       rules.exists({

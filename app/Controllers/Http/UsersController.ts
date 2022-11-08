@@ -8,6 +8,7 @@ import StoreValidator from 'App/Validators/User/StoreValidator'
 import UpdateValidator from 'App/Validators/User/UpdateValidator'
 import AccessAllowValidator from 'App/Validators/AccessAllowValidator'
 import { sendMail } from 'App/Services/sendMail'
+import { sendImgToS3AWS } from 'App/Services/sendImgToS3AWS'
 
 export default class UsersController {
   public async index({ response, request }: HttpContextContract) {
@@ -35,7 +36,7 @@ export default class UsersController {
   public async store({ response, request }: HttpContextContract) {
     await request.validate(StoreValidator)
 
-    const bodyUser = request.only(['name', 'cpf', 'email', 'password'])
+    const bodyUser = request.only(['name', 'cpf', 'email', 'password', 'urlProfilePic'])
     const bodyAddress = request.only([
       'zipCode',
       'state',
@@ -45,11 +46,23 @@ export default class UsersController {
       'number',
       'complement',
     ])
+    const urlProfilePic = request.file('urlProfilePic')
 
-    let userCreated
+    let url
+    try {
+      url = await sendImgToS3AWS(urlProfilePic, { name: bodyUser.name, cpf: bodyUser.cpf })
+    } catch (error) {
+      return response.badRequest({
+        message: 'Error in upload image in S3 AWS Storage',
+        originalMessage: error.message,
+      })
+    }
+
     const trx = await Database.beginGlobalTransaction()
 
+    let userCreated
     try {
+      bodyUser.urlProfilePic = url
       userCreated = await User.create(bodyUser, trx)
       const roleClient = await Role.findBy('name', 'client')
       if (roleClient) await userCreated.related('roles').attach([roleClient.id], trx)
@@ -114,7 +127,7 @@ export default class UsersController {
     await request.validate(UpdateValidator)
 
     const userSecureId = params.id
-    const bodyUser = request.only(['name', 'cpf', 'email', 'password'])
+    const bodyUser = request.only(['name', 'cpf', 'email', 'password', 'urlProfilePic'])
     const bodyAddress = request.only([
       'addressId',
       'zipCode',
@@ -126,11 +139,24 @@ export default class UsersController {
       'complement',
     ])
 
-    let userUpdate
+    const urlProfilePic = request.file('urlProfilePic')
     const trx = await Database.beginGlobalTransaction()
 
+    let userUpdate
     try {
       userUpdate = await User.findByOrFail('secure_id', userSecureId)
+
+      let url
+      try {
+        url = await sendImgToS3AWS(urlProfilePic, { name: userUpdate.name, cpf: userUpdate.cpf })
+      } catch (error) {
+        return response.badRequest({
+          message: 'Error in upload image in S3 AWS Storage',
+          originalMessage: error.message,
+        })
+      }
+
+      bodyUser.urlProfilePic = url
       userUpdate.useTransaction(trx)
       await userUpdate.merge(bodyUser).save()
     } catch (error) {
@@ -156,7 +182,11 @@ export default class UsersController {
 
     let userFind
     try {
-      userFind = await User.query().where('id', userUpdate.id).preload('roles').preload('addresses')
+      userFind = await User.query()
+        .where('id', userUpdate.id)
+        .preload('roles')
+        .preload('addresses')
+        .firstOrFail()
     } catch (error) {
       trx.rollback()
       return response.badRequest({
