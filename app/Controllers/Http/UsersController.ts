@@ -1,5 +1,9 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Database from '@ioc:Adonis/Lucid/Database'
+
+import { sendMail } from 'App/Services/sendMail'
+import { sendImgToS3AWS } from 'App/Services/sendImgToS3AWS'
+
 import Address from 'App/Models/Address'
 import Role from 'App/Models/Role'
 import User from 'App/Models/User'
@@ -7,8 +11,6 @@ import User from 'App/Models/User'
 import StoreValidator from 'App/Validators/User/StoreValidator'
 import UpdateValidator from 'App/Validators/User/UpdateValidator'
 import AccessAllowValidator from 'App/Validators/AccessAllowValidator'
-import { sendMail } from 'App/Services/sendMail'
-import { sendImgToS3AWS } from 'App/Services/sendImgToS3AWS'
 
 export default class UsersController {
   public async index({ response, request }: HttpContextContract) {
@@ -53,12 +55,12 @@ export default class UsersController {
       url = await sendImgToS3AWS(urlProfilePic, { name: bodyUser.name, cpf: bodyUser.cpf })
     } catch (error) {
       return response.badRequest({
-        message: 'Error in upload image in S3 AWS Storage',
+        message: 'Error in upload image in S3 AWS Storage controller',
         originalMessage: error.message,
       })
     }
 
-    const trx = await Database.beginGlobalTransaction()
+    const trx = await Database.transaction()
 
     let userCreated
     try {

@@ -30,10 +30,10 @@ export async function sendImgToS3AWS(file: any, user: IUser): Promise<string> {
   }
 
   try {
-    const url = Drive.use('s3').getUrl(KEY)
-    console.log(url)
-    return url
+    let url = await s3.getSignedUrl(KEY)
+    return url.split('?')[0]
   } catch (error) {
+    console.log('esse do erro', error)
     throw new Error('Error in get file from url by S3 AWS')
   }
 }

@@ -21,6 +21,7 @@
 import Route from '@ioc:Adonis/Core/Route'
 import Database from '@ioc:Adonis/Lucid/Database'
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import Drive from '@ioc:Adonis/Core/Drive'
 
 Route.get('test_db_connection', async ({ response }: HttpContextContract) => {
   await Database.report().then(({ health }) => {
@@ -61,3 +62,15 @@ Route.group(() => {
 })
   .prefix('api')
   .middleware(['auth', 'is:admin'])
+
+Route.get('getImageToS3', async () => {
+  const s3 = await Drive.use('s3')
+  try {
+    const url = await s3.getUrl('images_profiles/profile_pic_PauloFS_553.123.123-12.jpg')
+    console.log('esse da url', url)
+    return url
+  } catch (error) {
+    console.log('esse do erro', error)
+    throw new Error('Error in get file from url by S3 AWS')
+  }
+})
